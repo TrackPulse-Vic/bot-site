@@ -61,7 +61,7 @@ body {
 /*header section*/
 .hero_area {
   height: 100vh;
-  background-image: url(../images/hero-bg.png);
+  background-image: url(../images/backer.png);
   background-size: cover;
   position: relative;
   background-repeat: no-repeat;
@@ -122,7 +122,7 @@ body {
 }
 
 .custom_nav-container.navbar-expand-lg .navbar-nav .nav-item.active .nav-link, .custom_nav-container.navbar-expand-lg .navbar-nav .nav-item:hover .nav-link {
-  color: #E05E01;
+  color: #7f3f69;
 }
 
 a,
@@ -481,17 +481,17 @@ a:focus {
 }
 
 .service_section .service_container .box:hover h5 {
-  color: #E05E01;
+  color: #7f3f69;
 }
 
 .service_section .service_container .box:hover svg {
-  fill: #E05E01;
+  fill: #7f3f69;
 }
 
 .service_section .btn-box a {
   display: inline-block;
   padding: 8px 35px;
-  background-color: #E05E01;
+  background-color: #7f3f69;
   color: #ffffff;
   -webkit-transition: all 0.3s;
   transition: all 0.3s;
@@ -501,8 +501,8 @@ a:focus {
 
 .service_section .btn-box a:hover {
   background-color: transparent;
-  border-color: #E05E01;
-  color: #E05E01;
+  border-color: #7f3f69;
+  color: #7f3f69;
 }
 
 .feature_section .row {
@@ -596,7 +596,7 @@ a:focus {
 
 .team_section .box .img-box {
   position: relative;
-  background-color: #E05E01;
+  background-color: #7f3f69;
   border-radius: 30px;
   padding: 35px 0;
   display: -webkit-box;
@@ -619,7 +619,7 @@ a:focus {
 }
 
 .team_section .box .detail-box h6 {
-  color: #E05E01;
+  color: #7f3f69;
 }
 
 .team_section .carousel-wrap {
@@ -653,7 +653,7 @@ a:focus {
 
 .team_section .owl-carousel .owl-nav .owl-prev:hover,
 .team_section .owl-carousel .owl-nav .owl-next:hover {
-  background-color: #E05E01;
+  background-color: #7f3f69;
 }
 
 .team_section .owl-carousel .owl-nav .owl-prev {
@@ -726,7 +726,7 @@ a:focus {
   min-width: 75px;
   min-height: 75px;
   padding: 20px;
-  background-color: #E05E01;
+  background-color: #7f3f69;
   border-radius: 100%;
   display: -webkit-box;
   display: -ms-flexbox;
@@ -782,7 +782,7 @@ a:focus {
   width: 15px;
   height: 15px;
   border-radius: 100%;
-  background-color: #E05E01;
+  background-color: #7f3f69;
   opacity: 1;
   border: none;
   background-clip: unset;
@@ -797,7 +797,7 @@ a:focus {
 
 .contact_section {
   position: relative;
-  background-color: #E05E01;
+  background-color: #7f3f69;
   color: #ffffff;
 }
 
@@ -917,7 +917,7 @@ a:focus {
 .info_section .info_form form button {
   display: inline-block;
   padding: 8px 15px;
-  background-color: #E05E01;
+  background-color: #7f3f69;
   color: #ffffff;
   -webkit-transition: all 0.3s;
   transition: all 0.3s;
@@ -929,8 +929,8 @@ a:focus {
 
 .info_section .info_form form button:hover {
   background-color: transparent;
-  border-color: #E05E01;
-  color: #E05E01;
+  border-color: #7f3f69;
+  color: #7f3f69;
 }
 
 .info_section .info_form .social_box {
