@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Data Viewer</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Train Data Viewer</h1>
+    <input type="file" id="csvFile" accept=".csv">
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Train Set</th>
+                <th>Model</th>
+                <th>Date</th>
+                <th>Line</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <script>
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split('\n');
+                const tableBody = document.getElementById('tableBody');
+                tableBody.innerHTML = '';
+
+                rows.forEach(row => {
+                    if (row.trim() === '') return;
+                    const columns = row.split(',');
+                    if (columns.length >= 7) {
+                        const tr = document.createElement('tr');
+                        
+                        // Remove '#' from ID if present
+                        const id = columns[0].replace('#', '');
+                        tr.innerHTML = `
+                            <td>${id}</td>
+                            <td>${columns[1]}</td>
+                            <td>${columns[2]}</td>
+                            <td>${columns[3]}</td>
+                            <td>${columns[4]}</td>
+                            <td>${columns[5]}</td>
+                            <td>${columns[6]}</td>
+                            <td>${columns[7] || ''}</td>
+                        `;
+                        tableBody.appendChild(tr);
+                    }
+                });
+            };
+
+            reader.readAsText(file);
+        });
+    </script>
+</body>
+</html>
