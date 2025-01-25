@@ -2755,14 +2755,14 @@ input, select, textarea {
 
 		.spotlight .image {
 			width: 30%;
-			border-radius: 100%;
+			border-radius: 5%;
 			margin: 0 3em 0 0;
 			display: block;
 		}
 
 			.spotlight .image img {
 				display: block;
-				border-radius: 100%;
+				border-radius: 5%;
 				width: 100%;
 			}
 
@@ -3182,7 +3182,7 @@ input, select, textarea {
 					.wrapper.style2 input[type="button"].primary:hover,
 					.wrapper.style2 button.primary:hover,
 					.wrapper.style2 .button.primary:hover {
-						background-color: #5ca3e8;
+						background-color: #5865f2;
 					}
 
 					.wrapper.style2 input[type="submit"].primary:active,
