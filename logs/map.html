@@ -26,7 +26,7 @@
 </head>
 <body>
     <div class="map-container">
-        <img src="../assets/testmap.png" alt="Large Map" class="map-image" onload="centerMap()">
+        <img id="map-image" alt="Large Map" class="map-image" onload="centerMap()">
     </div>
 
     <script>
@@ -34,9 +34,26 @@
         const image = document.querySelector('.map-image');
         const container = document.querySelector('.map-container');
 
+        function getParameterByName(name) {
+            const url = window.location.href;
+            name = name.replace(/[\[\]]/g, '\\$&');
+            const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+            const results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
         function centerMap() {
             container.scrollLeft = (image.width - container.clientWidth) / 2;
             container.scrollTop = (image.height - container.clientHeight) / 2;
+        }
+
+        const imageUrl = getParameterByName('url');
+        if (imageUrl) {
+            image.src = imageUrl;
+        } else {
+            image.src = '../assets/testmap.png'; // Default image if no URL parameter is provided
         }
 
         container.addEventListener('wheel', (e) => {
