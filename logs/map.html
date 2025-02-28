@@ -58,14 +58,19 @@
             img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
         }
 
-        // Center the image when it loads
+        // Center and scale the image when it loads
         img.onload = function() {
             const containerWidth = imageContainer.offsetWidth;
             const containerHeight = imageContainer.offsetHeight;
             const imgWidth = img.naturalWidth;
             const imgHeight = img.naturalHeight;
 
-            // Calculate initial position to center the image
+            // Calculate scale to fit image within container
+            const scaleX = containerWidth / imgWidth;
+            const scaleY = containerHeight / imgHeight;
+            scale = Math.min(scaleX, scaleY);
+
+            // Calculate position to center the scaled image
             pointX = (containerWidth - imgWidth * scale) / 2;
             pointY = (containerHeight - imgHeight * scale) / 2;
             
@@ -147,7 +152,7 @@
                     
                     const prevDx = touches[0].clientX - touches[1].clientX;
                     const prevDy = touches[0].clientY - touches[1].clientY;
-                    const prevDistance = Math.sqrt(prevDx * prevDx + prevDy * prevDy);
+                    const prevDistance = Math.sqrt(prevDx * prevDy + prevDy * prevDy);
                     
                     scale *= currentDistance / prevDistance;
                     scale = Math.min(Math.max(0.1, scale), 10);
