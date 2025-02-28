@@ -14,7 +14,7 @@
             align-items: center;
             height: 100vh;
             background-color: #ffffff;
-            touch-action: none; /* Prevents default touch behaviors */
+            touch-action: none;
         }
         #imageContainer {
             position: relative;
@@ -22,7 +22,7 @@
             width: 100vw;
             height: 100vh;
             cursor: grab;
-            touch-action: none; /* Ensures touch events are handled by our code */
+            touch-action: none;
         }
         #zoomImage {
             position: absolute;
@@ -37,7 +37,7 @@
     </div>
 
     <script>
-        // Get URL parameters for image and title
+        // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const imageUrl = urlParams.get('img') || 'https://via.placeholder.com/2000x2000';
         const pageName = urlParams.get('name') || 'Zoomable Image Map';
@@ -46,7 +46,6 @@
         document.getElementById('pageTitle').textContent = pageName;
         const imageContainer = document.getElementById('imageContainer');
         const img = document.getElementById('zoomImage');
-        img.src = imageUrl;
 
         // Initialize variables
         let scale = 1;
@@ -58,31 +57,150 @@
         let initialScale = 0;
         let touches = [];
 
-        // Apply transformation to the image
+        // Apply transformation
         function setTransform() {
             img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
         }
 
-        // Center and scale the image to fit the viewport
+        // Center and scale the image to fit
         function centerImage() {
             const containerWidth = window.innerWidth;
             const containerHeight = window.innerHeight;
-            const imgWidth = img.naturalWidth;
-            const imgHeight = img.naturalHeight;
+            const imgWidth = img.naturalWidth || img.width;
+            const imgHeight = img.naturalHeight || img.height;
 
-            if (imgWidth && imgHeight) {
+            if (imgWidth > 0 && imgHeight > 0) {
                 const scaleX = containerWidth / imgWidth;
                 const scaleY = containerHeight / imgHeight;
-                scale = Math.min(scaleX, scaleY); // Fit image fully within viewport
-                pointX = (containerWidth - imgWidth * scale) / 2; // Center horizontally
-                pointY = (containerHeight - imgHeight * scale) / 2; // Center vertically
+                scale = Math.min(scaleX, scaleY);
+                pointX = (containerWidth - imgWidth * scale) / 2;
+                pointY = (containerHeight - imgHeight * scale) / 2;
                 setTransform();
+            } else {
+                console.warn('Image dimensions not available yet');
             }
         }
 
-        // Initialize image on load
-        img.onload = function() {
-            centerImage();
+        // Load image and center it
+        function loadImage() {
+            img.src = imageUrl;
+            img.onload = function() {
+                centerImage();
+            };
+            img.onerror = function() {
+                console.error('Failed to load image:', imageUrl);
+                img.src = 'https://via.placeholder.com/2000x2000';
+                img.onload = centerImage; // Re-center after fallback loads
+            };
+        }
+
+        // Initial load
+        loadImage();
+
+        // Handle window resize
+        window.addEventListener('resize', centerImage);
+
+        // Mouse Events (Desktop)
+        imageContainer.onwheel = function(e) {
+            e.preventDefault();
+            const xs = (e.clientX - pointX) / scale;
+            const ys = (e.clientY - pointY) / scale;
+            scale += e.deltaY * -0.001;
+            scale = Math.min(Math.max(0.1, scale), 10);
+            pointX = e.clientX - xs * scale;
+            pointY = e.clientY - ys * scale;
+            setTransform();
         };
 
-        // Handle image load errors
+        imageContainer.onmousedown = function(e) {
+            e.preventDefault();
+            start = { x: e.clientX - pointX, y: e.clientY - pointY };
+            panning = true;
+            imageContainer.style.cursor = 'grabbing';
+        };
+
+        imageContainer.onmousemove = function(e) {
+            if (!panning) return;
+            e.preventDefault();
+            pointX = e.clientX - start.x;
+            pointY = e.clientY - start.y;
+            setTransform();
+        };
+
+        imageContainer.onmouseup = function() {
+            panning = false;
+            imageContainer.style.cursor = 'grab';
+        };
+
+        imageContainer.onmouseleave = function() {
+            panning = false;
+            imageContainer.style.cursor = 'grab';
+        };
+
+        // Touch Events (Mobile)
+        imageContainer.ontouchstart = function(e) {
+            e.preventDefault();
+            touches = Array.from(e.touches);
+
+            if (touches.length === 1) {
+                start = {
+                    x: touches[0].clientX - pointX,
+                    y: touches[0].clientY - pointY
+                };
+                panning = true;
+            } else if (touches.length === 2) {
+                const dx = touches[0].clientX - touches[1].clientX;
+                const dy = touches[0].clientY - touches[1].clientY;
+                initialDistance = Math.sqrt(dx * dx + dy * dy);
+                initialScale = scale;
+                panning = false;
+            }
+        };
+
+        imageContainer.ontouchmove = function(e) {
+            e.preventDefault();
+            touches = Array.from(e.touches);
+
+            if (touches.length === 1 && panning) {
+                pointX = touches[0].clientX - start.x;
+                pointY = touches[0].clientY - start.y;
+                setTransform();
+            } else if (touches.length === 2) {
+                const dx = touches[0].clientX - touches[1].clientX;
+                const dy = touches[0].clientY - touches[1].clientY;
+                const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+                const midX = (touches[0].clientX + touches[1].clientX) / 2;
+                const midY = (touches[0].clientY + touches[1].clientY) / 2;
+                const imageX = (midX - pointX) / scale;
+                const imageY = (midY - pointY) / scale;
+
+                scale = initialScale * (currentDistance / initialDistance);
+                scale = Math.min(Math.max(0.1, scale), 10);
+
+                pointX = midX - imageX * scale;
+                pointY = midY - imageY * scale;
+                setTransform();
+            }
+        };
+
+        imageContainer.ontouchend = function(e) {
+            touches = Array.from(e.touches);
+            if (touches.length === 0) {
+                panning = false;
+            } else if (touches.length === 1) {
+                start = {
+                    x: touches[0].clientX - pointX,
+                    y: touches[0].clientY - pointY
+                };
+                panning = true;
+            }
+        };
+
+        imageContainer.ontouchcancel = function() {
+            touches = [];
+            panning = false;
+        };
+    </script>
+</body>
+</html>
