@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes">
     <title id="pageTitle">Zoomable Image Map</title>
     <style>
         body {
@@ -14,6 +14,7 @@
             align-items: center;
             height: 100vh;
             background-color: #ffffff;
+            touch-action: none; /* Prevents default browser touch behaviors */
         }
         #imageContainer {
             position: relative;
@@ -21,11 +22,13 @@
             width: 100vw;
             height: 100vh;
             cursor: grab;
+            touch-action: none; /* Ensures touch events are handled by our code */
         }
         #zoomImage {
             position: absolute;
             transform-origin: 0 0;
             transition: transform 0.1s;
+            width: 100%; /* Helps with initial rendering on mobile */
         }
     </style>
 </head>
@@ -77,7 +80,7 @@
             setTransform();
         };
 
-        // Mouse wheel zoom
+        // Mouse wheel zoom (Desktop)
         imageContainer.onwheel = function(e) {
             e.preventDefault();
             
@@ -93,7 +96,7 @@
             setTransform();
         }
 
-        // Panning
+        // Mouse panning (Desktop)
         imageContainer.onmousedown = function(e) {
             e.preventDefault();
             start = { x: e.clientX - pointX, y: e.clientY - pointY };
@@ -119,54 +122,77 @@
             imageContainer.style.cursor = 'grab';
         }
 
-        // Touch support
+        // Touch support (Mobile)
         let touches = [];
-        
+        let initialDistance = 0;
+        let initialScale = 0;
+
         imageContainer.ontouchstart = function(e) {
             e.preventDefault();
-            touches = e.touches;
+            touches = Array.from(e.touches);
+            
             if (touches.length === 1) {
                 start = {
                     x: touches[0].clientX - pointX,
                     y: touches[0].clientY - pointY
                 };
+                panning = true;
+            } else if (touches.length === 2) {
+                const dx = touches[0].clientX - touches[1].clientX;
+                const dy = touches[0].clientY - touches[1].clientY;
+                initialDistance = Math.sqrt(dx * dx + dy * dy);
+                initialScale = scale;
+                panning = false;
             }
         }
 
         imageContainer.ontouchmove = function(e) {
             e.preventDefault();
-            if (e.touches.length === 1) {
-                pointX = e.touches[0].clientX - start.x;
-                pointY = e.touches[0].clientY - start.y;
+            touches = Array.from(e.touches);
+
+            if (touches.length === 1 && panning) {
+                pointX = touches[0].clientX - start.x;
+                pointY = touches[0].clientY - start.y;
                 setTransform();
-            } else if (e.touches.length === 2) {
-                const dx = e.touches[0].clientX - e.touches[1].clientX;
-                const dy = e.touches[0].clientY - e.touches[1].clientY;
+            } else if (touches.length === 2) {
+                const dx = touches[0].clientX - touches[1].clientX;
+                const dy = touches[0].clientY - touches[1].clientY;
                 const currentDistance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (touches.length === 2) {
-                    const px = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                    const py = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                    const xs = (px - pointX) / scale;
-                    const ys = (py - pointY) / scale;
-                    
-                    const prevDx = touches[0].clientX - touches[1].clientX;
-                    const prevDy = touches[0].clientY - touches[1].clientY;
-                    const prevDistance = Math.sqrt(prevDx * prevDy + prevDy * prevDy);
-                    
-                    scale *= currentDistance / prevDistance;
-                    scale = Math.min(Math.max(0.1, scale), 10);
-                    
-                    pointX = px - xs * scale;
-                    pointY = py - ys * scale;
-                    setTransform();
-                }
+                // Pinch zoom
+                scale = initialScale * (currentDistance / initialDistance);
+                scale = Math.min(Math.max(0.1, scale), 10);
+
+                // Center zoom between fingers
+                const midX = (touches[0].clientX + touches[1].clientX) / 2;
+                const midY = (touches[0].clientY + touches[1].clientY) / 2;
+                const xs = (midX - pointX) / initialScale;
+                const ys = (midY - pointY) / initialScale;
+
+                pointX = midX - xs * scale;
+                pointY = midY - ys * scale;
+                
+                setTransform();
             }
-            touches = e.touches;
         }
 
         imageContainer.ontouchend = function(e) {
-            touches = e.touches;
+            touches = Array.from(e.touches);
+            if (touches.length < 1) {
+                panning = false;
+            }
+            if (touches.length === 1) {
+                start = {
+                    x: touches[0].clientX - pointX,
+                    y: touches[0].clientY - pointY
+                };
+                panning = true;
+            }
+        }
+
+        imageContainer.ontouchcancel = function(e) {
+            touches = [];
+            panning = false;
         }
     </script>
 </body>
