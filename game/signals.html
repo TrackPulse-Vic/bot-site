@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Victorian Signal Quiz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #000000;
+            padding: 20px;
+            color:white;
+        }
+        h1 {
+            color: #4595d6;
+        }
+        #signal-display {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column; /* Stack emojis vertically */
+            align-items: center; /* Center them horizontally */
+            gap: 5px; /* Small gap between emojis */
+        }
+        .signal-light {
+            font-size: 60px; /* Size of each emoji */
+            line-height: 1; /* Remove extra line spacing */
+        }
+        #options {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            background-color: #4a8bc2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2a4d69;
+        }
+        #next-button {
+            display: none; /* Hidden until an answer is selected */
+            background-color: #2a4d69;
+        }
+        #next-button:hover {
+            background-color: #1a3c52;
+        }
+        #feedback {
+            font-size: 18px;
+            margin: 10px 0;
+            white-space: pre-wrap; /* Preserve line breaks in feedback */
+        }
+        #score {
+            font-size: 20px;
+            color: #c0c0c0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Victorian Signal Quiz</h1>
+    <p>Test your knowledge of Victorian railway signal aspects!</p>
+    <div id="signal-display"></div>
+    <div id="options"></div>
+    <button id="next-button" onclick="loadNewSignal()">Next</button>
+    <div id="feedback"></div>
+    <div id="score">Score: 0</div>
+
+    <script>
+        // Signal data based on your provided aspects
+        const signals = [
+            { aspect: ["🔴", "🔴"], meaning: "STOP", description: "Indicated by two red lights one above the other." },
+            { aspect: ["🟡", "🔴"], meaning: "NORMAL SPEED WARNING", description: "Indicated by a yellow light above a red light.\nWhen 'Normal Speed Warning' is displayed the driver must be ready to stop at the next signal." },
+            { aspect: ["🟢", "🔴"], meaning: "CLEAR NORMAL SPEED", description: "Indicated by a green light above a red light.\nWhen 'Clear Normal Speed' is displayed the driver can expect the next signal at proceed and may proceed at the maximum speed allowed." },
+            { aspect: ["🔴", "🟡"], meaning: "MEDIUM SPEED WARNING", description: "Indicated by a yellow light below a red light.\nWhen 'Medium Speed Warning' is displayed the Driver may proceed at medium speed and must be prepared to stop at the next signal.\nWhen medium speed signal is displayed the speed restriction applies to the whole section up to the next signal." },
+            { aspect: ["🔴", "🟢"], meaning: "CLEAR MEDIUM SPEED", description: "Indicated by a green light below a red light.\nWhen 'Clear Medium Speed' is displayed the driver must not exceed 40 km/h and can expect the next signal at proceed.\nWhen medium speed signal is displayed the speed restriction applies to the whole section up to the next signal, except in ATC and CTC where the speed restriction only applies till the rear of the train is clear of the restriction, like points." },
+            { aspect: ["🟡", "🟢"], meaning: "REDUCE TO MEDIUM SPEED", description: "Indicated by a yellow light above a green light.\nWhen 'Reduce to Medium Speed' is displayed the driver may proceed at normal speed but must reduce to medium speed (40 km/h) before the next signal.\nIf after passing 'Reduce to Medium Speed' the driver observes the next signal is displaying an improved aspect such as normal speed, the driver may regulate the speed to the aspect of that signal." },
+            { aspect: ["🔴", "🔴", "🟡"], meaning: "LOW SPEED CAUTION", description: "Indicated by a yellow light below two red lights.\nWhen the 'Low Speed Caution' is displayed it indicates that the points are set in the correct position for the driver to proceed. It does not indicate the line is unoccupied. The driver must be prepared to stop short of any obstruction. The speed of the train must not exceed 15 km/h." }
+        ];
+
+        // All possible meanings for multiple-choice options
+        const allMeanings = signals.map(signal => signal.meaning);
+
+        let score = 0;
+        let currentSignal;
+
+        const signalDisplay = document.getElementById("signal-display");
+        const optionsDiv = document.getElementById("options");
+        const nextButton = document.getElementById("next-button");
+        const feedbackDiv = document.getElementById("feedback");
+        const scoreDiv = document.getElementById("score");
+
+        // Function to pick a random signal and display it
+        function loadNewSignal() {
+            currentSignal = signals[Math.floor(Math.random() * signals.length)];
+            signalDisplay.innerHTML = ""; // Clear previous display
+            currentSignal.aspect.forEach(light => {
+                const lightDiv = document.createElement("div");
+                lightDiv.className = "signal-light";
+                lightDiv.textContent = light;
+                signalDisplay.appendChild(lightDiv);
+            });
+            feedbackDiv.textContent = "";
+            nextButton.style.display = "none"; // Hide "Next" button until answer is selected
+            generateOptions();
+        }
+
+        // Function to generate multiple-choice options
+        function generateOptions() {
+            optionsDiv.innerHTML = "";
+            let options = [currentSignal.meaning];
+            
+            // Add two random wrong answers
+            while (options.length < 3) {
+                const randomMeaning = allMeanings[Math.floor(Math.random() * allMeanings.length)];
+                if (!options.includes(randomMeaning)) {
+                    options.push(randomMeaning);
+                }
+            }
+
+            // Shuffle options
+            options = options.sort(() => Math.random() - 0.5);
+
+            // Create buttons for each option
+            options.forEach(option => {
+                const button = document.createElement("button");
+                button.textContent = option;
+                button.onclick = () => checkAnswer(option);
+                optionsDiv.appendChild(button);
+            });
+        }
+
+        // Function to check the user's answer
+        function checkAnswer(selected) {
+            if (selected === currentSignal.meaning) {
+                feedbackDiv.textContent = `Correct!\n${currentSignal.description}`;
+                feedbackDiv.style.color = "green";
+                score++;
+            } else {
+                feedbackDiv.textContent = `Wrong!\nThe correct answer is "${currentSignal.meaning}":\n${currentSignal.description}`;
+                feedbackDiv.style.color = "red";
+            }
+            scoreDiv.textContent = `Score: ${score}`;
+            // Disable option buttons after selection
+            const buttons = optionsDiv.getElementsByTagName("button");
+            for (let button of buttons) {
+                button.disabled = true;
+            }
+            // Show the "Next" button
+            nextButton.style.display = "inline-block";
+        }
+
+        // Start the game
+        loadNewSignal();
+    </script>
+</body>
+</html>
