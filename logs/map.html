@@ -4,6 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes">
     <title id="pageTitle">Victorian Railway Map</title>
+    
+    <!-- Open Graph Meta Tags for General Social Media (Facebook, LinkedIn, etc.) -->
+    <meta property="og:title" id="ogTitle" content="">
+    <meta property="og:type" content="website">
+    <meta property="og:image" id="ogImage" content="">
+    <meta property="og:url" id="ogUrl" content="">
+    <meta property="og:description" content="An interactive zoomable map of Victorian railways">
+
+    <!-- X Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" id="twitterTitle" content="">
+    <meta name="twitter:image" id="twitterImage" content="">
+    <meta name="twitter:description" content="An interactive zoomable map of Victorian railways">
+    <script src="https://kit.fontawesome.com/19da31ded3.js" crossorigin="anonymous"></script>
+
     <style>
         body {
             margin: 0;
@@ -28,13 +43,12 @@
             position: absolute;
             transform-origin: 0 0;
             transition: transform 0.1s ease-out;
-            opacity: 0; /* Hidden until loaded */
+            opacity: 0;
             transition: transform 0.1s ease-out, opacity 0.2s ease;
         }
         #zoomImage.loaded {
-            opacity: 1; /* Fade in when loaded */
+            opacity: 1;
         }
-        /* Loading spinner styles */
         .loader {
             position: absolute;
             top: 50%;
@@ -52,6 +66,36 @@
             0% { transform: translate(-50%, -50%) rotate(0deg); }
             100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
+        .share-buttons {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+        .share-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            text-decoration: none;
+        }
+        .x-btn {
+            background-color: #000000;
+        }
+        .reddit-btn {
+            background-color: #FF4500;
+        }
+        .share-button:hover {
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -59,15 +103,25 @@
         <div id="loader" class="loader"></div>
         <img id="zoomImage" src="" alt="Zoomable Image">
     </div>
+    <div class="share-buttons">
+        <a href="#" id="xShare" class="share-button x-btn" title="Share on X"><i class="fa-brands fa-x-twitter"></i></a>
+        <a href="#" id="redditShare" class="share-button reddit-btn" title="Share on Reddit"><i class="fa-brands fa-reddit-alien"></i></a>
+    </div>
 
     <script>
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const imageUrl = urlParams.get('img') || 'https://railway-photos.xm9g.net/photos/A70.webp';
-        const pageName = urlParams.get('name') || 'Zoomable Image Map';
+        const pageName = urlParams.get('name') || 'Victorian Railway Map';
 
-        // Set page title and image source
+        // Set page title and meta tags dynamically
         document.getElementById('pageTitle').textContent = pageName;
+        document.getElementById('ogTitle').content = pageName;
+        document.getElementById('ogImage').content = imageUrl; // Use URL param for OG image
+        document.getElementById('ogUrl').content = window.location.href;
+        document.getElementById('twitterTitle').content = pageName;
+        document.getElementById('twitterImage').content = imageUrl; // Use URL param for X image
+
         const imageContainer = document.getElementById('imageContainer');
         const img = document.getElementById('zoomImage');
         const loader = document.getElementById('loader');
@@ -110,16 +164,19 @@
         function loadImage() {
             img.src = imageUrl;
             img.onload = function() {
-                loader.style.display = 'none'; // Hide loader
-                img.classList.add('loaded');   // Fade in image
+                loader.style.display = 'none';
+                img.classList.add('loaded');
                 centerImage();
             };
             img.onerror = function() {
                 console.error('Failed to load image:', imageUrl);
                 img.src = 'https://railway-photos.xm9g.net/photos/A70.webp';
+                // Update meta tags if fallback image is used
+                document.getElementById('ogImage').content = img.src;
+                document.getElementById('xImage').content = img.src;
                 img.onload = function() {
-                    loader.style.display = 'none'; // Hide loader
-                    img.classList.add('loaded');   // Fade in image
+                    loader.style.display = 'none';
+                    img.classList.add('loaded');
                     centerImage();
                 };
             };
@@ -231,6 +288,26 @@
         imageContainer.ontouchcancel = function() {
             touches = [];
             panning = false;
+        };
+
+        // Share button functionality
+        const currentUrl = window.location.href;
+        const shareText = `Check out the map of where I have been on the Victorian railway network!`;
+
+        const xShare = document.getElementById('xShare');
+        xShare.href = `https://x.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${shareText}%20%23trackpulsevic`;
+        xShare.onclick = function(e) {
+            e.preventDefault();
+            window.open(this.href, 'x-share', 'width=550,height=235');
+            return false;
+        };
+
+        const redditShare = document.getElementById('redditShare');
+        redditShare.href = `https://reddit.com/submit?url=${encodeURIComponent(currentUrl)}&title=${shareText}`;
+        redditShare.onclick = function(e) {
+            e.preventDefault();
+            window.open(this.href, 'reddit-share', 'width=900,height=700');
+            return false;
         };
     </script>
 </body>
