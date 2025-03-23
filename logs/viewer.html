@@ -39,12 +39,18 @@
             bottom: 0;
             background-size: cover;
             background-position: center;
-            filter: blur(5px) brightness(0.7);
             z-index: 0;
+            /* Default to solid gray background, no blur */
+            background-color: #2a2a2a; /* Matches the card background */
+        }
+
+        /* Class to enable background image with blur */
+        .log-background-enabled {
+            filter: blur(5px) brightness(0.7);
             transition: transform 0.5s ease;
         }
 
-        .log-card:hover .log-background {
+        .log-card:hover .log-background-enabled {
             transform: scale(1.05);
         }
 
@@ -113,6 +119,10 @@
     <div id="logsContainer"></div>
 
     <script>
+        // Check for URL parameter to enable background images
+        const urlParams = new URLSearchParams(window.location.search);
+        const enableBackground = urlParams.get('background') === 'true';
+
         // Updated color mapping for different lines
         const lineColors = {
             'Alamein': '#01518a',
@@ -214,17 +224,49 @@
             reader.readAsText(file);
         });
 
-        // Display logs sorted by date (newest first) and handle images separately
+        // Set up Intersection Observer to load/unload images
+        const observerOptions = {
+            root: null,
+            rootMargin: '200px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                const card = entry.target;
+                const img = card.querySelector('.log-image');
+                const background = card.querySelector('.log-background');
+
+                if (entry.isIntersecting) {
+                    // Load images when the card enters the viewport
+                    const imageUrl = img.dataset.src;
+                    if (imageUrl) {
+                        img.src = imageUrl;
+                        if (enableBackground) {
+                            background.style.backgroundImage = `url(${imageUrl})`;
+                        }
+                    }
+                } else {
+                    // Unload images when the card exits the viewport
+                    img.src = '';
+                    if (enableBackground) {
+                        background.style.backgroundImage = '';
+                    }
+                }
+            });
+        }, observerOptions);
+
+        // Display logs sorted by date (newest first) and handle images with lazy loading
         function displayLogs(rows) {
             const container = document.getElementById('logsContainer');
             container.innerHTML = '';
 
             // Sort rows by date (assuming YYYY-MM-DD format in column 3)
-            const validRows = rows.filter(row => row.length >= 7); // Filter out incomplete rows
+            const validRows = rows.filter(row => row.length >= 7);
             validRows.sort((a, b) => {
-                const dateA = new Date(a[3]); // Column 3 is date
+                const dateA = new Date(a[3]);
                 const dateB = new Date(b[3]);
-                return dateB - dateA; // Newest first
+                return dateB - dateA;
             });
 
             const imagePromises = [];
@@ -237,17 +279,17 @@
                 card.className = 'log-card';
                 card.style.borderLeft = `5px solid ${lineColors[line] || '#666'}`;
 
-                // Create blurred background element
+                // Create background element
                 const background = document.createElement('div');
                 background.className = 'log-background';
-                const placeholder = getGenericImage(type, set.split('-')[0]);
-                background.style.backgroundImage = `url(${placeholder})`;
+                if (enableBackground) {
+                    background.classList.add('log-background-enabled');
+                }
 
                 // Foreground image
                 const img = document.createElement('img');
                 img.className = 'log-image';
                 img.alt = `${type} ${set}`;
-                img.src = placeholder;
 
                 // Details
                 const details = document.createElement('div');
@@ -263,13 +305,11 @@
                 ];
 
                 if (notes && notes.trim()) {
-                    // Strip quotes from the start and end of the notes iteratively
-                    let cleanedNotes = notes.trim(); // First, trim whitespace
-                    // Iteratively remove quotes from start and end
+                    let cleanedNotes = notes.trim();
                     while (cleanedNotes.startsWith('"') || cleanedNotes.endsWith('"')) {
                         cleanedNotes = cleanedNotes.replace(/^"+/, '').replace(/"+$/, '');
                     }
-                    console.log('Cleaned Notes:', cleanedNotes); // Debug log to verify
+                    console.log('Cleaned Notes:', cleanedNotes);
                     fields.push({ name: 'Notes', value: cleanedNotes });
                 }
 
@@ -296,22 +336,31 @@
                 card.appendChild(details);
                 container.appendChild(card);
 
-                // Add image loading promise
+                // Fetch the image URL and store it in data attributes
                 imagePromises.push(
                     getImageURL(set, type).then(url => {
                         if (url) {
-                            background.style.backgroundImage = `url(${url})`;
-                            img.src = url;
+                            img.dataset.src = url;
+                            background.dataset.src = url;
+                            if (card.getBoundingClientRect().top < window.innerHeight) {
+                                img.src = url;
+                                if (enableBackground) {
+                                    background.style.backgroundImage = `url(${url})`;
+                                }
+                            }
                         }
                     })
                 );
+
+                // Observe the card for visibility changes
+                observer.observe(card);
             });
 
-            // Load all images after displaying logs
+            // Load all image URLs after displaying logs
             Promise.all(imagePromises).then(() => {
-                console.log('All images processed');
+                console.log('All image URLs fetched');
             }).catch(err => {
-                console.error('Error loading some images:', err);
+                console.error('Error fetching some image URLs:', err);
             });
         }
     </script>
