@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Log Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        .upload-container {
+            margin-bottom: 20px;
+        }
+
+        .log-card {
+            position: relative;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            background-color: #2a2a2a;
+            display: flex;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        .log-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-size: cover;
+            background-position: center;
+            filter: blur(5px) brightness(0.7);
+            z-index: 0;
+            transition: transform 0.5s ease;
+        }
+
+        .log-card:hover .log-background {
+            transform: scale(1.05);
+        }
+
+        .log-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+            z-index: 1;
+            background-color: #444;
+        }
+
+        .log-details {
+            flex: 1;
+            z-index: 1;
+            background: rgba(40, 40, 40, 0.9);
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .field {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .field-name {
+            font-weight: bold;
+            color: #e0e0e0;
+            font-size: 16px;
+            margin-right: 5px;
+        }
+
+        .field-value {
+            color: #b0b0b0;
+            font-size: 16px;
+        }
+
+        .log-number .field-value {
+            font-size: 18px;
+            color: #1a73e8;
+        }
+
+        .codeblock {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #333;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #1a73e8;
+            font-size: 18px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            background-color: #333;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <input type="file" id="csvFile" accept=".csv">
+    </div>
+    <div id="logsContainer"></div>
+
+    <script>
+        // Updated color mapping for different lines
+        const lineColors = {
+            'Alamein': '#01518a',
+            'Belgrave': '#01518a',
+            'Lilydale': '#01518a',
+            'Glen Waverley': '#01518a',
+            'Pakenham': '#00a8e4',
+            'Cranbourne': '#00a8e4',
+            'Frankston': '#009645',
+            'Stony Point': '#009645',
+            'Werribee': '#009645',
+            'Williamstown': '#009645',
+            'Sandringham': '#f17fb1',
+            'Sunbury': '#fcb818',
+            'Craigieburn': '#fcb818',
+            'Upfield': '#fcb818',
+            'Hurstbridge': '#d0202e',
+            'Mernda': '#d0202e',
+            'Geelong': '#782f9a',
+            'Warrnambool': '#782f9a',
+            'Ballarat': '#782f9a',
+            'Maryborough': '#782f9a',
+            'Ararat': '#782f9a',
+            'Bendigo': '#782f9a',
+            'Echuca': '#782f9a',
+            'Swan Hill': '#782f9a',
+            'Albury': '#782f9a',
+            'Seymour': '#782f9a',
+            'Shepparton': '#782f9a',
+            'Traralgon': '#782f9a',
+            'Bairnsdale': '#782f9a'
+        };
+
+        // Function to attempt loading an image directly
+        function getImage(number) {
+            return new Promise((resolve) => {
+                const photoUrl = `https://railway-photos.xm9g.net/photos/${number}.webp`;
+                const img = new Image();
+                
+                img.onload = () => resolve(photoUrl);
+                img.onerror = () => resolve(null);
+                img.src = photoUrl;
+            });
+        }
+
+        // Main function to get appropriate image URL
+        async function getImageURL(setNumber, trainType) {
+            if (trainType === 'Tait') {
+                return 'https://railway-photos.xm9g.net/photos/317M-6.webp';
+            }
+
+            if (!setNumber.includes('-')) {
+                return await getImage(setNumber) || getGenericImage(trainType, setNumber);
+            }
+
+            const firstCar = setNumber.split('-')[0];
+            let image = await getImage(firstCar);
+
+            if (!image) {
+                const lastCar = setNumber.split('-').pop();
+                image = await getImage(lastCar) || getGenericImage(trainType, lastCar);
+            }
+
+            return image || getGenericImage(trainType);
+        }
+
+        // Fallback generic image URLs
+        function getGenericImage(trainType, carNumber = '') {
+            const baseUrl = 'https://xm9g.net/discord-bot-assets/MPTB/';
+            switch(trainType) {
+                case "X'Trapolis 100":
+                    return `${baseUrl}XTrapolis-100.png`;
+                case 'HCMT':
+                    return `${baseUrl}HCMT.png`;
+                case 'EDI Comeng':
+                    return `${baseUrl}EDI-Comeng.png`;
+                case 'Alstom Comeng':
+                    return `${baseUrl}Alstom-Comeng.png`;
+                case 'Siemens Nexas':
+                    return `${baseUrl}Siemens-Nexas.png`;
+                case 'VLocity':
+                    return `${baseUrl}VLocity.png`;
+                default:
+                    return `https://placehold.co/100x100`;
+            }
+        }
+
+        // Handle file upload and parsing
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split('\n').map(row => row.split(','));
+                displayLogs(rows);
+            };
+            reader.readAsText(file);
+        });
+
+        // Display logs sorted by date (newest first) and handle images separately
+        function displayLogs(rows) {
+            const container = document.getElementById('logsContainer');
+            container.innerHTML = '';
+
+            // Sort rows by date (assuming YYYY-MM-DD format in column 3)
+            const validRows = rows.filter(row => row.length >= 7); // Filter out incomplete rows
+            validRows.sort((a, b) => {
+                const dateA = new Date(a[3]); // Column 3 is date
+                const dateB = new Date(b[3]);
+                return dateB - dateA; // Newest first
+            });
+
+            const imagePromises = [];
+
+            validRows.forEach(row => {
+                const [logId, set, type, date, line, from, to, notes] = row;
+                
+                // Create log card
+                const card = document.createElement('div');
+                card.className = 'log-card';
+                card.style.borderLeft = `5px solid ${lineColors[line] || '#666'}`;
+
+                // Create blurred background element
+                const background = document.createElement('div');
+                background.className = 'log-background';
+                const placeholder = getGenericImage(type, set.split('-')[0]);
+                background.style.backgroundImage = `url(${placeholder})`;
+
+                // Foreground image
+                const img = document.createElement('img');
+                img.className = 'log-image';
+                img.alt = `${type} ${set}`;
+                img.src = placeholder;
+
+                // Details
+                const details = document.createElement('div');
+                details.className = 'log-details';
+
+                // Add fields
+                const fields = [
+                    { name: 'Log', value: logId },
+                    { name: 'Set', value: `${set} (${type})` },
+                    { name: 'Line', value: line },
+                    { name: 'Date', value: date },
+                    { name: 'Trip', value: `${from} to ${to}` }
+                ];
+
+                if (notes && notes.trim()) {
+                    // Strip quotes from the start and end of the notes iteratively
+                    let cleanedNotes = notes.trim(); // First, trim whitespace
+                    // Iteratively remove quotes from start and end
+                    while (cleanedNotes.startsWith('"') || cleanedNotes.endsWith('"')) {
+                        cleanedNotes = cleanedNotes.replace(/^"+/, '').replace(/"+$/, '');
+                    }
+                    console.log('Cleaned Notes:', cleanedNotes); // Debug log to verify
+                    fields.push({ name: 'Notes', value: cleanedNotes });
+                }
+
+                fields.forEach(field => {
+                    const fieldDiv = document.createElement('div');
+                    fieldDiv.className = 'field';
+                    if (field.name === 'Log') {
+                        fieldDiv.classList.add('log-number');
+                        fieldDiv.innerHTML = `
+                            <span class="field-name">${field.name}:</span>
+                            <span class="field-value"><code class="codeblock">${field.value}</code></span>
+                        `;
+                    } else {
+                        fieldDiv.innerHTML = `
+                            <span class="field-name">${field.name}:</span>
+                            <span class="field-value">${field.value}</span>
+                        `;
+                    }
+                    details.appendChild(fieldDiv);
+                });
+
+                card.appendChild(background);
+                card.appendChild(img);
+                card.appendChild(details);
+                container.appendChild(card);
+
+                // Add image loading promise
+                imagePromises.push(
+                    getImageURL(set, type).then(url => {
+                        if (url) {
+                            background.style.backgroundImage = `url(${url})`;
+                            img.src = url;
+                        }
+                    })
+                );
+            });
+
+            // Load all images after displaying logs
+            Promise.all(imagePromises).then(() => {
+                console.log('All images processed');
+            }).catch(err => {
+                console.error('Error loading some images:', err);
+            });
+        }
+    </script>
+</body>
+</html>
