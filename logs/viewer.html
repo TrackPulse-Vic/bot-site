@@ -40,11 +40,9 @@
             background-size: cover;
             background-position: center;
             z-index: 0;
-            /* Default to solid gray background, no blur */
             background-color: #2a2a2a; /* Matches the card background */
         }
 
-        /* Class to enable background image with blur */
         .log-background-enabled {
             filter: blur(5px) brightness(0.7);
             transition: transform 0.5s ease;
@@ -113,15 +111,13 @@
     </style>
 </head>
 <body>
-    <div class="upload-container">
-        <input type="file" id="csvFile" accept=".csv">
-    </div>
     <div id="logsContainer"></div>
 
     <script>
-        // Check for URL parameter to enable background images
+        // Check for URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const enableBackground = urlParams.get('background') === 'true';
+        const fileName = urlParams.get('file');  // Get the file name from URL (e.g., ?file=trainlog.csv)
 
         // Updated color mapping for different lines
         const lineColors = {
@@ -210,19 +206,32 @@
             }
         }
 
-        // Handle file upload and parsing
-        document.getElementById('csvFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        // Fetch CSV from server and parse it
+        async function loadCSVFromServer() {
+        if (!fileName) {
+            document.getElementById('logsContainer').innerHTML = '<p>No file specified in URL. Use ?file=filename.csv</p>';
+            return;
+        }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const rows = text.split('\n').map(row => row.split(','));
-                displayLogs(rows);
-            };
-            reader.readAsText(file);
-        });
+        try {
+            const serverUrl = `http://localhost:5001/csv/${fileName}`;
+            console.log(`Fetching from: ${serverUrl}`);  // Debug log
+            const response = await fetch(serverUrl);
+            
+            if (!response.ok) {
+                throw new Error('File not found or server error');
+            }
+
+            const text = await response.text();
+            const rows = text.split('\n').map(row => row.split(','));
+            displayLogs(rows);
+        } catch (error) {
+            document.getElementById('logsContainer').innerHTML = `<p>Error loading file: ${error.message}</p>`;
+            console.error('Fetch error:', error);  // Debug log
+        }
+    }
+
+        
 
         // Set up Intersection Observer to load/unload images
         const observerOptions = {
@@ -238,7 +247,6 @@
                 const background = card.querySelector('.log-background');
 
                 if (entry.isIntersecting) {
-                    // Load images when the card enters the viewport
                     const imageUrl = img.dataset.src;
                     if (imageUrl) {
                         img.src = imageUrl;
@@ -247,7 +255,6 @@
                         }
                     }
                 } else {
-                    // Unload images when the card exits the viewport
                     img.src = '';
                     if (enableBackground) {
                         background.style.backgroundImage = '';
@@ -261,7 +268,6 @@
             const container = document.getElementById('logsContainer');
             container.innerHTML = '';
 
-            // Sort rows by date (assuming YYYY-MM-DD format in column 3)
             const validRows = rows.filter(row => row.length >= 7);
             validRows.sort((a, b) => {
                 const dateA = new Date(a[3]);
@@ -274,28 +280,23 @@
             validRows.forEach(row => {
                 const [logId, set, type, date, line, from, to, notes] = row;
                 
-                // Create log card
                 const card = document.createElement('div');
                 card.className = 'log-card';
                 card.style.borderLeft = `5px solid ${lineColors[line] || '#666'}`;
 
-                // Create background element
                 const background = document.createElement('div');
                 background.className = 'log-background';
                 if (enableBackground) {
                     background.classList.add('log-background-enabled');
                 }
 
-                // Foreground image
                 const img = document.createElement('img');
                 img.className = 'log-image';
                 img.alt = `${type} ${set}`;
 
-                // Details
                 const details = document.createElement('div');
                 details.className = 'log-details';
 
-                // Add fields
                 const fields = [
                     { name: 'Log', value: logId },
                     { name: 'Set', value: `${set} (${type})` },
@@ -309,7 +310,6 @@
                     while (cleanedNotes.startsWith('"') || cleanedNotes.endsWith('"')) {
                         cleanedNotes = cleanedNotes.replace(/^"+/, '').replace(/"+$/, '');
                     }
-                    console.log('Cleaned Notes:', cleanedNotes);
                     fields.push({ name: 'Notes', value: cleanedNotes });
                 }
 
@@ -336,7 +336,6 @@
                 card.appendChild(details);
                 container.appendChild(card);
 
-                // Fetch the image URL and store it in data attributes
                 imagePromises.push(
                     getImageURL(set, type).then(url => {
                         if (url) {
@@ -352,17 +351,18 @@
                     })
                 );
 
-                // Observe the card for visibility changes
                 observer.observe(card);
             });
 
-            // Load all image URLs after displaying logs
             Promise.all(imagePromises).then(() => {
                 console.log('All image URLs fetched');
             }).catch(err => {
                 console.error('Error fetching some image URLs:', err);
             });
         }
+
+        // Load the CSV when the page loads
+        loadCSVFromServer();
     </script>
 </body>
 </html>
