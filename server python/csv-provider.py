@@ -1,14 +1,23 @@
-from flask import Flask, make_response, send_file, abort, Response
+from flask import Flask, request, send_file, abort, make_response
 from flask_cors import CORS
 import os
 
 app = Flask(__name__)
 CORS(app, resources={"/csv/*": {"origins": "*"}})  # Allow all origins
 
-CSV_DIR = "D:\\Billy\\Douments\\Self made programs\\Melbourne-transport-discord-bot\\utils\\trainlogger\\userdata"
-    
-@app.route('/csv/<filename>')
+CSV_DIR = "D:\\Billy\Douments\\Self made programs\\Melbourne-transport-discord-bot\\utils\\trainlogger\\userdata"
+
+@app.route('/csv/<filename>', methods=['GET', 'OPTIONS'])
 def serve_csv(filename):
+    if request.method == 'OPTIONS':
+        # Handle CORS preflight request
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Accept, ngrok-skip-browser-warning'
+        print("Handled OPTIONS preflight request")
+        return response
+
     file_path = os.path.join(CSV_DIR, filename)
     print(f"Requested file: {filename}")
     print(f"Full path: {file_path}")
