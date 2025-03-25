@@ -214,7 +214,7 @@
         }
 
         try {
-            const serverUrl = `http://localhost:5001/csv/${fileName}`;
+            const serverUrl = `https://cf02-49-185-124-116.ngrok-free.app/csv/${fileName}`;
             console.log(`Fetching from: ${serverUrl}`);  // Debug log
             const response = await fetch(serverUrl);
             
