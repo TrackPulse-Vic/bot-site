@@ -219,7 +219,8 @@
             const response = await fetch(serverUrl, {
                 method: 'GET',
                 headers: {
-                    'Accept': 'text/csv'
+                    'Accept': 'text/csv',
+                    'ngrok-skip-browser-warning': 'true'  // Custom header to skip browser warning
                 }
             });
             
