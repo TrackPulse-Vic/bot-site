@@ -1,9 +1,9 @@
-from flask import Flask, send_file, abort, Response
+from flask import Flask, make_response, send_file, abort, Response
 from flask_cors import CORS
 import os
 
 app = Flask(__name__)
-CORS(app, resources={"/csv/*": {"origins": "*"}})  # Allow all origins for /csv/*
+CORS(app, resources={"/csv/*": {"origins": "*"}})  # Allow all origins
 
 CSV_DIR = "D:\\Billy\\Douments\\Self made programs\\Melbourne-transport-discord-bot\\utils\\trainlogger\\userdata"
     
@@ -18,15 +18,12 @@ def serve_csv(filename):
     
     if os.path.exists(file_path) and file_path.endswith('.csv'):
         response = send_file(file_path, mimetype='text/csv')
-        response.headers['Access-Control-Allow-Origin'] = '*'  # Manual header as fallback
+        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
     else:
-        abort(404, description=f"File not found or not a CSV at {file_path}")
-
-# Test route to check CORS
-@app.route('/test')
-def test_cors():
-    return Response("CORS Test", mimetype='text/plain', headers={'Access-Control-Allow-Origin': '*'})
+        response = make_response(f"File not found or not a CSV at {file_path}", 404)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001)

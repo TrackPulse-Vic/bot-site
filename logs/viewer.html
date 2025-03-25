@@ -215,19 +215,28 @@
 
         try {
             const serverUrl = `https://cf02-49-185-124-116.ngrok-free.app/csv/${fileName}`;
-            console.log(`Fetching from: ${serverUrl}`);  // Debug log
-            const response = await fetch(serverUrl);
+            console.log(`Fetching from: ${serverUrl}`);
+            const response = await fetch(serverUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'text/csv'
+                }
+            });
+            
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers.get('Content-Type'));
             
             if (!response.ok) {
-                throw new Error('File not found or server error');
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
             }
 
             const text = await response.text();
+            console.log('Fetched CSV data:', text.substring(0, 100) + '...');
             const rows = text.split('\n').map(row => row.split(','));
             displayLogs(rows);
         } catch (error) {
             document.getElementById('logsContainer').innerHTML = `<p>Error loading file: ${error.message}</p>`;
-            console.error('Fetch error:', error);  // Debug log
+            console.error('Fetch error:', error);
         }
     }
 
