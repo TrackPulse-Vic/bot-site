@@ -1,5 +1,7 @@
 from flask import Flask, request, send_file, make_response, jsonify
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import os
 import requests
 from urllib.parse import urlencode
@@ -8,21 +10,26 @@ app = Flask(__name__)
 CORS(app, resources={
     "/csv/*": {"origins": "*"},
     "/auth/discord": {"origins": "*"}
-})  # Allow all origins for these endpoints
+})
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 # Configuration
-CSV_DIR = "D:\\Billy\\Douments\\Self made programs\\Melbourne-transport-discord-bot\\utils\\trainlogger\\userdata"
-
 DISCORD_TOKEN_URL = "https://discord.com/api/oauth2/token"
 DISCORD_USER_URL = "https://discord.com/api/users/@me"
 
-# Load from environment variables
 from dotenv import load_dotenv
 load_dotenv()
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
+CSV_DIR = os.getenv("CSV_DIR")
 
 @app.route('/csv/<filename>', methods=['GET', 'OPTIONS'])
+@limiter.limit("100/day")
 def serve_csv(filename):
     if request.method == 'OPTIONS':
         response = make_response()
@@ -49,6 +56,7 @@ def serve_csv(filename):
         return response
 
 @app.route('/auth/discord', methods=['POST', 'OPTIONS'])
+@limiter.limit("50/day;10/hour")
 def discord_auth():
     if request.method == 'OPTIONS':
         response = make_response()
@@ -65,7 +73,6 @@ def discord_auth():
     code = data['code']
     redirect_uri = data['redirect_uri']
 
-    # Exchange code for access token
     token_payload = {
         'client_id': DISCORD_CLIENT_ID,
         'client_secret': DISCORD_CLIENT_SECRET,
@@ -85,7 +92,6 @@ def discord_auth():
         if not access_token:
             return jsonify({"error": "Failed to obtain access token"}), 500
 
-        # Get user info
         user_response = requests.get(DISCORD_USER_URL, headers={
             'Authorization': f'Bearer {access_token}'
         })
@@ -105,4 +111,4 @@ def discord_auth():
         return jsonify({"error": "Authentication failed"}), 500
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5001, debug=True)  # Debug mode for development
+    app.run(host='0.0.0.0', port=5001, debug=False)
