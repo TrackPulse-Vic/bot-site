@@ -15,8 +15,28 @@
             color: #e0e0e0;
         }
 
-        .upload-container {
+        .auth-container {
             margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .auth-button {
+            padding: 10px 20px;
+            background-color: #7289da;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .auth-button:hover {
+            background-color: #677bc4;
+        }
+        
+        .user-info {
+            color: #b0b0b0;
+            margin: 10px 0;
         }
 
         .log-card {
@@ -40,7 +60,7 @@
             background-size: cover;
             background-position: center;
             z-index: 0;
-            background-color: #2a2a2a; /* Matches the card background */
+            background-color: #2a2a2a;
         }
 
         .log-background-enabled {
@@ -100,24 +120,20 @@
             color: #1a73e8;
             font-size: 18px;
         }
-
-        input[type="file"] {
-            padding: 10px;
-            background-color: #333;
-            color: #e0e0e0;
-            border: 1px solid #444;
-            border-radius: 5px;
-        }
     </style>
 </head>
 <body>
+    <div class="auth-container">
+        <button id="loginButton" class="auth-button">Login with Discord</button>
+        <button id="logoutButton" class="auth-button" style="display: none;">Logout</button>
+        <div id="userInfo" class="user-info"></div>
+    </div>
     <div id="logsContainer"></div>
 
     <script>
         // Check for URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const enableBackground = urlParams.get('background') === 'true';
-        const fileName = urlParams.get('file');  // Get the file name from URL (e.g., ?file=trainlog.csv)
 
         // Updated color mapping for different lines
         const lineColors = {
@@ -206,44 +222,119 @@
             }
         }
 
-        // Fetch CSV from server and parse it
-        async function loadCSVFromServer() {
-        if (!fileName) {
-            document.getElementById('logsContainer').innerHTML = '<p>No file specified in URL. Use ?file=filename.csv</p>';
-            return;
-        }
+        // Discord authentication configuration
+        const CLIENT_ID = '1214144664513417218'; // Replace with your Discord app's client ID
+        const REDIRECT_URI = window.location.origin + window.location.pathname;
+        const SCOPES = 'identify';
+        const BACKEND_URL = 'https://flying-thrush-early.ngrok-free.app'; // Your Flask server URL
 
-        try {
-            const serverUrl = `https://flying-thrush-early.ngrok-free.app/csv/${fileName}`;  // Updated Ngrok URL
-            console.log(`Fetching from: ${serverUrl}`);
-            const response = await fetch(serverUrl, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'text/csv',
-                    'ngrok-skip-browser-warning': 'true'  // Custom header to skip browser warning
+        // Check if user is returning from Discord auth
+        const code = urlParams.get('code');
+
+        // Store token in localStorage
+        let accessToken = localStorage.getItem('discord_access_token');
+        let username = localStorage.getItem('discord_username');
+
+        // UI elements
+        const loginButton = document.getElementById('loginButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const userInfo = document.getElementById('userInfo');
+
+        // Handle Discord login
+        loginButton.addEventListener('click', () => {
+            const authUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${SCOPES}`;
+            window.location.href = authUrl;
+        });
+
+        // Handle logout
+        logoutButton.addEventListener('click', () => {
+            localStorage.removeItem('discord_access_token');
+            localStorage.removeItem('discord_username');
+            accessToken = null;
+            username = null;
+            updateUI();
+            document.getElementById('logsContainer').innerHTML = '';
+        });
+
+        // Handle OAuth callback via backend
+        async function handleAuthCallback() {
+            if (code && !accessToken) {
+                try {
+                    const response = await fetch(`${BACKEND_URL}/auth/discord`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ code, redirect_uri: REDIRECT_URI })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Backend error: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.access_token && data.username) {
+                        accessToken = data.access_token;
+                        username = data.username;
+                        localStorage.setItem('discord_access_token', accessToken);
+                        localStorage.setItem('discord_username', username);
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    } else {
+                        throw new Error('Authentication failed');
+                    }
+                } catch (error) {
+                    console.error('Auth error:', error);
+                    userInfo.textContent = 'Authentication failed. Please try again.';
                 }
-            });
-            
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers.get('Content-Type'));
-            
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status} ${response.statusText}`);
             }
-
-            const text = await response.text();
-            console.log('Fetched CSV data:', text.substring(0, 100) + '...');
-            const rows = text.split('\n').map(row => row.split(','));
-            displayLogs(rows);
-        } catch (error) {
-            document.getElementById('logsContainer').innerHTML = `<p>Error loading file: ${error.message}</p>`;
-            console.error('Fetch error:', error);
+            updateUI();
+            if (username) {
+                loadCSVForUser(username);
+            }
         }
-    }
 
-        
+        // Update UI based on auth state
+        function updateUI() {
+            if (accessToken && username) {
+                loginButton.style.display = 'none';
+                logoutButton.style.display = 'inline-block';
+                userInfo.textContent = `Logged in as: ${username}`;
+            } else {
+                loginButton.style.display = 'inline-block';
+                logoutButton.style.display = 'none';
+                userInfo.textContent = 'Please log in to view your train logs';
+            }
+        }
 
-        // Set up Intersection Observer to load/unload images
+        // Load CSV for user
+        async function loadCSVForUser(username) {
+            const container = document.getElementById('logsContainer');
+            container.innerHTML = 'Loading...';
+
+            try {
+                const serverUrl = `${BACKEND_URL}/csv/${username}.csv`;
+                const response = await fetch(serverUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'text/csv',
+                        'ngrok-skip-browser-warning': 'true'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                }
+
+                const text = await response.text();
+                const rows = text.split('\n').map(row => row.split(','));
+                displayLogs(rows);
+            } catch (error) {
+                container.innerHTML = `<p>Error loading your logs: ${error.message}</p>`;
+                console.error('Fetch error:', error);
+            }
+        }
+
+        // Set up Intersection Observer
         const observerOptions = {
             root: null,
             rootMargin: '200px',
@@ -273,7 +364,7 @@
             });
         }, observerOptions);
 
-        // Display logs sorted by date (newest first) and handle images with lazy loading
+        // Display logs
         function displayLogs(rows) {
             const container = document.getElementById('logsContainer');
             container.innerHTML = '';
@@ -371,8 +462,8 @@
             });
         }
 
-        // Load the CSV when the page loads
-        loadCSVFromServer();
+        // Initialize
+        handleAuthCallback();
     </script>
 </body>
 </html>
