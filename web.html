@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Train Logger (Beta)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/19da31ded3.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        .container {
+            text-align: center;
+            padding: 20px;
+            background-color: #2a2a2a;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+
+        .beta-tag {
+            font-size: 0.7em;
+            vertical-align: super;
+            color: #1a73e8;
+        }
+
+        p {
+            color: #b0b0b0;
+            margin: 15px 0;
+            line-height: 1.5;
+        }
+
+        .auth-button {
+            padding: 10px 20px;
+            background-color: #5865f2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .auth-button:hover {
+            background-color: #677bc4;
+        }
+
+        .link-button {
+            background-color: #1a73e8;
+        }
+
+        .link-button:hover {
+            background-color: #4285f4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TrackPulse VIC web <span class="beta-tag">Beta</span></h1>
+        <p>Welcome to TrackPulse VIC web. This is a beta version of our website that will allow you to log train journeys in Victoria.</p>
+        <p>Currently, this page only has the ability to view your logs. To use all the features, use the TrackPulse VIC Discord Bot.</p>
+        
+        <!-- <button class="auth-button">Login with Discord <i class="fa-brands fa-discord"></i></button> -->
+        <a href="https://discord.com/oauth2/authorize?client_id=1214144664513417218&permissions=563467500642112&integration_type=0&scope=bot" class="auth-button"><i class="fa-brands fa-discord"></i> Invite Discord Bot</a>
+        <a href="/logs/viewer.html" class="auth-button link-button">View Your Logs <i class="fa-solid fa-arrow-right"></i></a>
+        
+    </div>
+</body>
+</html>
