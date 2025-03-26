@@ -5,7 +5,8 @@ import os
 app = Flask(__name__)
 CORS(app, resources={"/csv/*": {"origins": "*"}})  # Allow all origins
 
-CSV_DIR = "D:\\Billy\Douments\\Self made programs\\Melbourne-transport-discord-bot\\utils\\trainlogger\\userdata"
+# CSV_DIR = "D:\\Billy\Douments\\Self made programs\\Melbourne-transport-discord-bot\\utils\\trainlogger\\userdata"
+CSV_DIR = "C:\\Users\\billy\\Documents\\Melbourne-transport-discord-bot\\utils\\trainlogger\\userdata"
 
 @app.route('/csv/<filename>', methods=['GET', 'OPTIONS'])
 def serve_csv(filename):
