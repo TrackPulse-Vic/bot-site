@@ -343,10 +343,11 @@ input, select, textarea {
 
 	
 	nav{
-		position:fixed;
-		width:100%;
-		background-color:white;
-		z-index:1000;
+		position: fixed;
+		width: 100%;
+		background-color: whitesmoke;
+		z-index: 1000;		
+		align-items: center;
 	}
 
 /* Row */
@@ -2493,6 +2494,7 @@ input, select, textarea {
 			justify-content: center;
 			width: 100%;
 			margin-left: 0;
+			padding-top: 20px;
 		}
 
 			ul.actions.special li:first-child {
