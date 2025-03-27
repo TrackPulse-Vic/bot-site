@@ -341,6 +341,14 @@ input, select, textarea {
 		border-bottom-color: #e6e6e6;
 	}
 
+	
+	nav{
+		position:fixed;
+		width:100%;
+		background-color:white;
+		z-index:1000;
+	}
+
 /* Row */
 
 	.row {
