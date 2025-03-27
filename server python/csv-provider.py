@@ -27,6 +27,7 @@ load_dotenv()
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 CSV_DIR = os.getenv("CSV_DIR")
+MAP_DIR = os.getenv("MAP_DIR")
 
 @app.route('/csv/<filename>', methods=['GET', 'OPTIONS'])
 @limiter.limit("100/day")
@@ -52,6 +53,34 @@ def serve_csv(filename):
         return response
     else:
         response = make_response(f"File not found or not a CSV at {file_path}", 404)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+@app.route('/map/<filename>', methods=['GET', 'OPTIONS'])
+@limiter.limit("100/day")
+def serve_map(filename):
+    filename = filename + "-map.png"
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Accept, ngrok-skip-browser-warning'
+        print("Handled OPTIONS preflight request for /map")
+        return response
+
+    file_path = os.path.join(MAP_DIR, filename)
+    print(f"Requested file: {filename}")
+    print(f"Full path: {file_path}")
+    print(f"Path exists: {os.path.exists(file_path)}")
+    print(f"Is PNG: {file_path.endswith('.png')}")
+    print(f"Files in directory: {os.listdir(CSV_DIR)}")
+    
+    if os.path.exists(file_path) and file_path.endswith('.png'):
+        response = send_file(file_path, mimetype='image/png')
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+    else:
+        response = make_response(f"File not found or not a PNG at {file_path}", 404)
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
