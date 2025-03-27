@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/19da31ded3.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <p>Redirecting to Discord login...</p>
+    </div>
+
+    <script>
+        const CLIENT_ID = '1214144664513417218';
+        const REDIRECT_URI = window.location.origin + '/login.html';
+        const SCOPES = 'identify';
+        const BACKEND_URL = 'https://flying-thrush-early.ngrok-free.app';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const redirectTo = urlParams.get('redirect') || '/logs/viewer.html';
+
+        function redirectToDiscord() {
+            const authUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${SCOPES}`;
+            window.location.href = authUrl;
+        }
+
+        async function handleAuthCallback() {
+            if (code) {
+                try {
+                    const response = await fetch(`${BACKEND_URL}/auth/discord`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ code, redirect_uri: REDIRECT_URI })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Backend error: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.access_token && data.username) {
+                        localStorage.setItem('discord_access_token', data.access_token);
+                        localStorage.setItem('discord_username', data.username);
+                        window.location.href = redirectTo;
+                    }
+                } catch (error) {
+                    console.error('Auth error:', error);
+                    document.body.innerHTML += '<p>Authentication failed. Please try again.</p>';
+                }
+            }
+        }
+
+        if (localStorage.getItem('discord_access_token')) {
+            window.location.href = redirectTo;
+        } else if (!code) {
+            redirectToDiscord();
+        } else {
+            handleAuthCallback();
+        }
+    </script>
+</body>
+</html>
