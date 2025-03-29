@@ -40,6 +40,34 @@
             margin: 10px 0;
         }
 
+        .filters-container {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .filter-group {
+            margin: 10px 0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filter-group label {
+            color: #e0e0e0;
+            font-weight: bold;
+        }
+
+        .filter-group select, 
+        .filter-group input {
+            padding: 5px;
+            background-color: #333;
+            border: none;
+            border-radius: 3px;
+            color: #e0e0e0;
+        }
+
         .log-card {
             position: relative;
             border-radius: 5px;
@@ -129,6 +157,36 @@
         <button id="logoutButton" class="auth-button" style="display: none;">Logout</button>
         <div id="userInfo" class="user-info"></div>
     </div>
+    
+    <div class="filters-container">
+        <div class="filter-group">
+            <label for="lineFilter">Line:</label>
+            <select id="lineFilter">
+                <option value="">All Lines</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="typeFilter">Train Type:</label>
+            <select id="typeFilter">
+                <option value="">All Types</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="fromFilter">From Station:</label>
+            <input type="text" id="fromFilter" placeholder="Enter station">
+        </div>
+        <div class="filter-group">
+            <label for="toFilter">To Station:</label>
+            <input type="text" id="toFilter" placeholder="Enter station">
+        </div>
+        <div class="filter-group">
+            <label for="startDate">Start Date:</label>
+            <input type="date" id="startDate">
+            <label for="endDate">End Date:</label>
+            <input type="date" id="endDate">
+        </div>
+    </div>
+    
     <div id="logsContainer"></div>
 
     <script>
@@ -231,6 +289,7 @@
 
         let accessToken = localStorage.getItem('discord_access_token');
         let username = localStorage.getItem('discord_username');
+        let allLogs = []; // Store all logs for filtering
 
         const loginButton = document.getElementById('loginButton');
         const logoutButton = document.getElementById('logoutButton');
@@ -292,11 +351,68 @@
 
                 const text = await response.text();
                 const rows = text.split('\n').map(row => row.split(','));
-                displayLogs(rows);
+                allLogs = rows.filter(row => row.length >= 7);
+                setupFilters(allLogs);
+                applyFilters();
             } catch (error) {
                 container.innerHTML = `<p>Error loading your logs: ${error.message}</p>`;
                 console.error('Fetch error:', error);
             }
+        }
+
+        // Setup filter options
+        function setupFilters(logs) {
+            const lines = [...new Set(logs.map(row => row[4]))];
+            const types = [...new Set(logs.map(row => row[2]))];
+
+            const lineFilter = document.getElementById('lineFilter');
+            lines.forEach(line => {
+                const option = document.createElement('option');
+                option.value = line;
+                option.textContent = line;
+                lineFilter.appendChild(option);
+            });
+
+            const typeFilter = document.getElementById('typeFilter');
+            types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                typeFilter.appendChild(option);
+            });
+
+            // Add event listeners for filters
+            document.getElementById('lineFilter').addEventListener('change', applyFilters);
+            document.getElementById('typeFilter').addEventListener('change', applyFilters);
+            document.getElementById('fromFilter').addEventListener('input', applyFilters);
+            document.getElementById('toFilter').addEventListener('input', applyFilters);
+            document.getElementById('startDate').addEventListener('change', applyFilters);
+            document.getElementById('endDate').addEventListener('change', applyFilters);
+        }
+
+        // Apply filters to logs
+        function applyFilters() {
+            const lineFilter = document.getElementById('lineFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const fromFilter = document.getElementById('fromFilter').value.toLowerCase();
+            const toFilter = document.getElementById('toFilter').value.toLowerCase();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            const filteredLogs = allLogs.filter(row => {
+                const [, , type, date, line, from, to] = row;
+                
+                if (lineFilter && line !== lineFilter) return false;
+                if (typeFilter && type !== typeFilter) return false;
+                if (fromFilter && !from.toLowerCase().includes(fromFilter)) return false;
+                if (toFilter && !to.toLowerCase().includes(toFilter)) return false;
+                if (startDate && new Date(date) < new Date(startDate)) return false;
+                if (endDate && new Date(date) > new Date(endDate)) return false;
+                
+                return true;
+            });
+
+            displayLogs(filteredLogs);
         }
 
         // Set up Intersection Observer
