@@ -153,8 +153,11 @@
     <script>
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const imageUrl = urlParams.get('img') || 'https://placehold.co/600x400';
+        const userName = urlParams.get('img') || 'themap.png';
         const pageName = urlParams.get('name') || 'Victorian Railway Map';
+
+        // make the image name converted to the URL
+        const imageUrl = `https://flying-thrush-early.ngrok-free.app/map/${userName}.png`;
 
         // Set page title and meta tags dynamically
         document.getElementById('pageTitle').textContent = pageName;
@@ -202,19 +205,40 @@
                 console.warn('Image dimensions not available yet');
             }
         }
-
         // Load image and center it
-        function loadImage() {
-            img.src = imageUrl;
+        function loadImage(retryCount = 0) {
+            const maxRetries = 5;  // Increase max retries
+            const retryDelay = 2000;  // 2 seconds between retries
+            
+            // Fetch the image with custom headers first
+            fetch(imageUrl, {
+            headers: {
+                'ngrok-skip-browser-warning': 'true'
+            }
+            })
+            .then(response => response.blob())
+            .then(blob => {
+            const objectUrl = URL.createObjectURL(blob);
+            img.crossOrigin = "anonymous";
+            img.src = objectUrl;
             img.onload = function() {
+                URL.revokeObjectURL(objectUrl);
                 loader.style.display = 'none';
                 img.classList.add('loaded');
                 centerImage();
             };
-            img.onerror = function() {
-                console.error('Failed to load image:', imageUrl);
-                window.location.reload();
-            };
+            })
+            .catch(error => {
+            console.error(`Failed to load image (attempt ${retryCount + 1}/${maxRetries}):`, imageUrl, error);
+            if (retryCount < maxRetries) {
+                loader.style.display = 'block';
+                console.log(`Retrying in ${retryDelay/1000} seconds...`);
+                setTimeout(() => loadImage(retryCount + 1), retryDelay);
+            } else {
+                loader.style.display = 'none';
+                console.error('Max retries reached. Please check if the image URL is correct and accessible.');
+            }
+            });
         }
 
         // Initial load
