@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log a Train</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/19da31ded3.js" crossorigin="anonymous"></script>
+    <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+    <link rel="stylesheet" href="/assets/css/logger.css" />
+
+    <!-- Analytics -->
+    <script type="text/javascript">
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "qup8z0zsv8");
+    </script>
+</head>
+<body>
+    <div class="auth-container">
+        <button id="loginButton" class="auth-button" style="display: none;">Login with Discord <i class="fa-brands fa-discord"></i></button>
+        <button id="logoutButton" class="auth-button" style="display: none;">Logout</button>
+        <div id="userInfo" class="user-info"></div>
+    </div>
+
+    <div class="form-container">
+        <h2>Log a Train Trip</h2>
+        <form id="trainLogForm">
+            <div class="form-group">
+                <label for="number">Carriage Number:</label>
+                <input type="text" id="number" name="number" required placeholder="e.g., 123M or VL001">
+            </div>
+            <div class="form-group">
+                <label for="date">Date (DD/MM/YYYY):</label>
+                <input type="text" id="date" name="date" placeholder="Enter date or 'today'" value="today">
+            </div>
+            <div class="form-group">
+                <label for="line">Train Line:</label>
+                <select id="line" name="line" required>
+                    <option value="">Select a line</option>
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="start">Starting Station:</label>
+                <input type="text" id="start" name="start" required placeholder="Enter starting station">
+            </div>
+            <div class="form-group">
+                <label for="end">Ending Station:</label>
+                <input type="text" id="end" name="end" required placeholder="Enter ending station">
+            </div>
+            <div class="form-group">
+                <label for="traintype">Train Type:</label>
+                <select id="traintype" name="traintype">
+                    <option value="auto">Auto-detect</option>
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="notes">Notes:</label>
+                <textarea id="notes" name="notes" placeholder="Any additional notes"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="hidemessage">Hide Message:</label>
+                <input type="checkbox" id="hidemessage" name="hidemessage">
+                <span class="checkbox-note">Check to hide the log message from others (log remains public)</span>
+            </div>
+            <button type="submit" class="submit-button">Log Train</button>
+        </form>
+        <div id="responseMessage"></div>
+    </div>
+
+    <script>
+        // Discord authentication configuration
+        const CLIENT_ID = '1214144664513417218';
+        const REDIRECT_URI = window.location.origin + '/login.html';
+        const SCOPES = 'identify';
+        const BACKEND_URL = 'https://flying-thrush-early.ngrok-free.app';
+
+        let accessToken = localStorage.getItem('discord_access_token');
+        let username = localStorage.getItem('discord_username');
+
+        const loginButton = document.getElementById('loginButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const userInfo = document.getElementById('userInfo');
+        const responseMessage = document.getElementById('responseMessage');
+
+        loginButton.addEventListener('click', () => {
+            window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.pathname)}`;
+        });
+
+        logoutButton.addEventListener('click', () => {
+            localStorage.removeItem('discord_access_token');
+            localStorage.removeItem('discord_username');
+            accessToken = null;
+            username = null;
+            updateUI();
+        });
+
+        function updateUI() {
+            if (accessToken && username) {
+                loginButton.style.display = 'none';
+                logoutButton.style.display = 'inline-block';
+                userInfo.textContent = `Logged in as: ${username}`;
+            } else {
+                loginButton.style.display = 'inline-block';
+                logoutButton.style.display = 'none';
+                userInfo.textContent = 'Please log in to log a train trip';
+                document.getElementById('trainLogForm').style.display = 'none';
+            }
+        }
+
+        function checkAuth() {
+            if (!accessToken || !username) {
+                window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.pathname)}`;
+            } else {
+                updateUI();
+                populateFilters();
+            }
+        }
+
+        // Predefined train lines and types (could be fetched from backend)
+        const trainLines = [
+            'Alamein', 'Belgrave', 'Lilydale', 'Glen Waverley', 'Pakenham', 'Cranbourne',
+            'Frankston', 'Stony Point', 'Werribee', 'Williamstown', 'Sandringham',
+            'Sunbury', 'Craigieburn', 'Upfield', 'Hurstbridge', 'Mernda', 'Geelong',
+            'Warrnambool', 'Ballarat', 'Maryborough', 'Ararat', 'Bendigo', 'Echuca',
+            'Swan Hill', 'Albury', 'Seymour', 'Shepparton', 'Traralgon', 'Bairnsdale'
+        ];
+
+        const trainTypes = [
+            "X'Trapolis 100", 'HCMT', 'EDI Comeng', 'Alstom Comeng', 'Siemens Nexas',
+            'VLocity', 'Tait'
+        ];
+
+        function populateFilters() {
+            const lineSelect = document.getElementById('line');
+            trainLines.forEach(line => {
+                const option = document.createElement('option');
+                option.value = line;
+                option.textContent = line;
+                lineSelect.appendChild(option);
+            });
+
+            const typeSelect = document.getElementById('traintype');
+            trainTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                typeSelect.appendChild(option);
+            });
+        }
+
+        // Form submission
+        document.getElementById('trainLogForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            responseMessage.innerHTML = 'Submitting...';
+
+            const formData = {
+                number: document.getElementById('number').value.trim(),
+                date: document.getElementById('date').value.trim(),
+                line: document.getElementById('line').value,
+                start: document.getElementById('start').value.trim(),
+                end: document.getElementById('end').value.trim(),
+                traintype: document.getElementById('traintype').value,
+                notes: document.getElementById('notes').value.trim(),
+                hidemessage: document.getElementById('hidemessage').checked,
+                username: username
+            };
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/log-train`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Server error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                responseMessage.innerHTML = `<p style="color: green;">Train logged successfully! Log ID: ${result.logId}</p>`;
+                document.getElementById('trainLogForm').reset();
+                document.getElementById('date').value = 'today'; // Reset date to 'today'
+                document.getElementById('traintype').value = 'auto'; // Reset traintype to 'auto'
+            } catch (error) {
+                responseMessage.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>

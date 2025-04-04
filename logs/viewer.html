@@ -18,6 +18,59 @@
         })(window, document, "clarity", "script", "qup8z0zsv8");
     </script>
 
+    <style>
+        /* Loading animation styles */
+        .log-card {
+            position: relative;
+            display: flex; /* Use flex to position image and details side by side */
+            align-items: center;
+        }
+
+        .log-image {
+            transition: opacity 0.3s ease;
+            max-width: 100px; /* Adjust as needed */
+            margin-right: 20px; /* Space between image and loader/details */
+        }
+
+        .log-image.loading {
+            opacity: 0;
+        }
+
+        .loader {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 20px; /* Space between loader and details */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .log-background {
+            z-index: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .log-details {
+            position: relative;
+            z-index: 1;
+        }
+
+        .image-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+    </style>
 </head>
 <body>
     <div class="auth-container">
@@ -340,9 +393,16 @@
                     background.classList.add('log-background-enabled');
                 }
 
+                const imageContainer = document.createElement('div');
+                imageContainer.className = 'image-container';
+
                 const img = document.createElement('img');
-                img.className = 'log-image';
+                img.className = 'log-image loading'; // Add loading class initially
                 img.alt = `${type} ${set}`;
+
+                // Create loader element
+                const loader = document.createElement('div');
+                loader.className = 'loader';
 
                 const details = document.createElement('div');
                 details.className = 'log-details';
@@ -382,7 +442,9 @@
                 });
 
                 card.appendChild(background);
-                card.appendChild(img);
+                imageContainer.appendChild(img);
+                imageContainer.appendChild(loader); // Add loader next to image
+                card.appendChild(imageContainer);
                 card.appendChild(details);
                 container.appendChild(card);
 
@@ -391,12 +453,28 @@
                         if (url) {
                             img.dataset.src = url;
                             background.dataset.src = url;
+                            
+                            // When image loads, remove loader and show image
+                            img.onload = () => {
+                                img.classList.remove('loading');
+                                loader.remove();
+                            };
+                            img.onerror = () => {
+                                // Handle error case
+                                loader.remove();
+                                img.classList.remove('loading');
+                            };
+
                             if (card.getBoundingClientRect().top < window.innerHeight) {
                                 img.src = url;
                                 if (enableBackground) {
                                     background.style.backgroundImage = `url(${url})`;
                                 }
                             }
+                        } else {
+                            // If no URL, remove loader immediately
+                            loader.remove();
+                            img.classList.remove('loading');
                         }
                     })
                 );
