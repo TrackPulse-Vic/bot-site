@@ -109,6 +109,13 @@
             <label for="endDate">End Date:</label>
             <input type="date" id="endDate">
         </div>
+        <div class="filter-group">
+            <label for="sortOrder">Sort by:</label>
+            <select id="sortOrder">
+                <option value="csv_reverse">Newest</option>
+                <option value="csv">Oldest</option>
+            </select>
+        </div>
     </div>
     
     <div id="logsContainer"></div>
@@ -312,6 +319,7 @@
             document.getElementById('toFilter').addEventListener('input', applyFilters);
             document.getElementById('startDate').addEventListener('change', applyFilters);
             document.getElementById('endDate').addEventListener('change', applyFilters);
+            document.getElementById('sortOrder').addEventListener('change', applyFilters);
         }
 
         // Apply filters to logs
@@ -322,6 +330,7 @@
             const toFilter = document.getElementById('toFilter').value.toLowerCase();
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
+            const sortOrder = document.getElementById('sortOrder').value;
 
             const filteredLogs = allLogs.filter(row => {
                 const [, , type, date, line, from, to] = row;
@@ -336,7 +345,7 @@
                 return true;
             });
 
-            displayLogs(filteredLogs);
+            displayLogs(filteredLogs, sortOrder);
         }
 
         // Set up Intersection Observer
@@ -370,16 +379,15 @@
         }, observerOptions);
 
         // Display logs
-        function displayLogs(rows) {
+        function displayLogs(rows, sortOrder) {
             const container = document.getElementById('logsContainer');
             container.innerHTML = '';
 
-            const validRows = rows.filter(row => row.length >= 7);
-            validRows.sort((a, b) => {
-                const dateA = new Date(a[3]);
-                const dateB = new Date(b[3]);
-                return dateB - dateA;
-            });
+            let validRows = rows.filter(row => row.length >= 7);
+            if (sortOrder === 'csv_reverse') {
+                validRows = validRows.reverse();
+            }
+            // No sorting for 'csv' as it follows original CSV order
 
             const imagePromises = [];
 
