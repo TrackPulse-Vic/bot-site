@@ -158,7 +158,6 @@
             'Bairnsdale': '#782f9a'
         };
 
-        // Function to attempt loading an image directly
         function getImage(number) {
             return new Promise((resolve) => {
                 const photoUrl = `https://railway-photos.xm9g.net/photos/${number}.webp`;
@@ -170,7 +169,6 @@
             });
         }
 
-        // Main function to get appropriate image URL
         async function getImageURL(setNumber, trainType) {
             if (trainType === 'Tait') {
                 return 'https://railway-photos.xm9g.net/photos/317M-6.webp';
@@ -191,7 +189,6 @@
             return image || getGenericImage(trainType);
         }
 
-        // Fallback generic image URLs
         function getGenericImage(trainType, carNumber = '') {
             const baseUrl = 'https://xm9g.net/discord-bot-assets/MPTB/';
             switch(trainType) {
@@ -387,7 +384,6 @@
             if (sortOrder === 'csv_reverse') {
                 validRows = validRows.reverse();
             }
-            // No sorting for 'csv' as it follows original CSV order
 
             const imagePromises = [];
 
@@ -408,10 +404,9 @@
                 imageContainer.className = 'image-container';
 
                 const img = document.createElement('img');
-                img.className = 'log-image loading'; // Add loading class initially
+                img.className = 'log-image loading';
                 img.alt = `${type} ${set}`;
 
-                // Create loader element
                 const loader = document.createElement('div');
                 loader.className = 'loader';
 
@@ -454,24 +449,35 @@
 
                 card.appendChild(background);
                 imageContainer.appendChild(img);
-                // imageContainer.appendChild(loader); // Add loader next to image
                 card.appendChild(imageContainer);
                 card.appendChild(details);
                 container.appendChild(card);
 
                 imagePromises.push(
                     getImageURL(set, type).then(url => {
+                        let linkNumber = 'nuhuh'; // Default to set if no specific number in URL
                         if (url) {
                             img.dataset.src = url;
                             background.dataset.src = url;
                             
-                            // When image loads, remove loader and show image
+                            // Extract number from image URL if it's in the format https://railway-photos.xm9g.net/photos/{number}.webp
+                            const photoMatch = url.match(/https:\/\/railway-photos\.xm9g\.net\/photos\/([^\/]+)\.webp/);
+                            if (photoMatch && photoMatch[1]) {
+                                linkNumber = photoMatch[1];
+                            }
+
+                            // Create anchor tag with the extracted number
+                            const link = document.createElement('a');
+                            link.href = `https://railway-photos.xm9g.net?number=${encodeURIComponent(linkNumber)}&referer=logviewer`;
+                            link.target = '_blank';
+                            img.parentNode.insertBefore(link, img);
+                            link.appendChild(img);
+
                             img.onload = () => {
                                 img.classList.remove('loading');
                                 loader.remove();
                             };
                             img.onerror = () => {
-                                // Handle error case
                                 loader.remove();
                                 img.classList.remove('loading');
                             };
@@ -483,7 +489,6 @@
                                 }
                             }
                         } else {
-                            // If no URL, remove loader immediately
                             loader.remove();
                             img.classList.remove('loading');
                         }
